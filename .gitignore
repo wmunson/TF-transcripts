@@ -24,6 +24,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.DS_Store
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -94,4 +95,4 @@ venv.bak/
 .mypy_cache/
 
 # data
-/pdfs
+/pdfs/
