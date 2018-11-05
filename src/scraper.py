@@ -1,4 +1,5 @@
 import requests
+import re
 import pandas as pd
 from bs4 import BeautifulSoup
 
@@ -10,18 +11,31 @@ def parse_html():
 
 	urls = pd.read_csv('links.csv', sep='\n')
 	test = urls.loc[20,'urls']
-	# print(test)
+	print(test)
 	req = requests.get(test)
 	soup = BeautifulSoup(req.text, 'html.parser')
 	main = (soup.find("div",{'class':'entry-content'}))
 	ps = (main.findAll('p'))
+	# print((ps))
+	speakers = re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+):</strong>',str(ps))
+	print(type(speakers[0]))
 	start = []
-	for i,_ in enumerate(ps):
-		print(str(_))
-		print(type(str(_)))
-		if '<p><strong>Tim Ferriss:</strong' in str(_):
+	speakers = []
+	for i, _ in enumerate(ps):
+		if re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+):</strong>',str(_)):
+			print(re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+):</strong>',str(_)).group(0))
+			speakers.append(re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+):</strong>',str(_)).group(0))
 			start.append(i)
-	start = start[0]
+	# print(start)
+	print(set([str(x).replace(':','') for x in speakers]))
+	try:
+		start = start[0]
+	except IndexError:
+		start = 0
+	text = [x.get_text() for x in ps[start:]]
+	print(text[0:2])
+	print(len(text))
+	print(ps[0].get_text())
 	
 
 
