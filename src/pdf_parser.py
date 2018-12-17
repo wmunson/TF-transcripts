@@ -4,37 +4,42 @@ import json
 import io
 import requests
 
-def pdf_parser(link):
+def pdf_parser(ep_num,link):
 	# file = 'pdfs/01-kevin-rose.pdf'
 	req = requests.get(link)
 	pdf_bytes = io.BytesIO(req.content)
 	result ={}
 	pdf_raw = PyPDF2.PdfFileReader(pdf_bytes)
+	print(pdf_raw)
 	num = pdf_raw.numPages
 	result['num_pages'] = num
 	raw_string = ''
 	for i in range(num):
 		raw_string += (pdf_raw.getPage(i).extractText())
 
-
+	# print(raw_string)
 	## Text clean up
 	pdf = raw_string.replace('!"#$%&\'()*+*,--.\n/,-01*2&3*45%%&667*899*:&\'()6*:565%;5<7','')
 	pdf = pdf.replace('\n','|')
 	pdf = pdf.replace('. |','')
 	pdf = pdf.replace('|','')
+	pdf = pdf.replace(' ! ','')
 	pdf = pdf.replace('Ò','"')
 	pdf = pdf.replace('Ó','"')
 	pdf = pdf.replace('Õ',"'")
+	pdf = pdf.replace('Õ',"'")
+	pdf = pdf.replace('Ð',"-")
 	pdf = pdf.lower()
+	print(pdf)
 
 
 	## Saving episode details
-	show_details = re.search(r'!the tim ferriss show transcripts episode ([0-9]+):  ([a-z]+ [a-z]+) show notes and links at tim.blog/podcast',pdf,re.MULTILINE).groups()
+	show_details = re.search(r'!the tim ferriss show transcripts episode ([0-9]+):  ([a-z]+ [a-z]+)',pdf,re.MULTILINE).groups()
 	guest = show_details[1]
 	result['guest'] = guest
 	first,last = guest.split()
 	episode = show_details[0]
-	result['episode_num'] = episode
+	result['episode_num'] = ep_num
 
 
 	## Remove headers and speaker names
@@ -80,12 +85,15 @@ def pdf_parser(link):
 	result['guest_text'] = guest_text_list
 	result['guest_text_len'] = guest_text_len
 
+	return result
 	# print((guest_text_list))
-	print(result)
-	with open('files/json.json','w') as fp:
-		json.dump(result,fp,sort_keys=True)
+	# print(result)
+	# with open('files/json.json','w') as fp:
+	# 	json.dump(result,fp,sort_keys=True)
 
 
 
 if __name__ == '__main__':
-	main()
+	data = pdf_parser(0,'https://fhww.files.wordpress.com/2018/07/59-alex-blumberg-part-2.pdf')
+	with open('files/Testpdf.json','w') as fp:
+		json.dump(data,fp,sort_keys=True)

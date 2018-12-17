@@ -1,3 +1,21 @@
+12/14:
+html parser is good for now.
+- work on getting pdf parser to match oputput as html
 
+_____
+12/6:
 
-11/2:
+STATUS: links3.csv has best lisat of urls (filtered to on shows.)
+	in main.py now need to sort url by pdf vs html response (use ending of url), then send to approproate parser.
+	-html parser seems good for basic metris. pdf parser needs more work to refine/match html parser (need json files to have exact same feilds regardless of pdf vs html)
+
+Metrics:
+-total length (words, sentences, questions?)
+-number of topics
+-protion of text as Tim vs Guest(s)
+-language complexity
+-sentiment over episode
+-sentiment average over time (ave of single episode?)
+-passive vs active language
+-POS counts?
+-*Grammer details?*

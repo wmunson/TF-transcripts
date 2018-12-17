@@ -1,57 +1,82 @@
 import requests
 import re
 import pandas as pd
+import json
 from bs4 import BeautifulSoup
 
 
 def parse_html(ep_num, link):
 	# with open('links.csv', delimiter='\n') as fd:
 
-	urls = [ x for x in pd.read_csv('links.csv', sep='\n').loc[:,'urls']]
-	# test = urls.loc[0,'urls']
-	for i,url in enumerate(urls):
-		print(url)
-		episode = 151+i
-		req = requests.get(url)
-		soup = BeautifulSoup(req.text, 'html.parser')
-		main = (soup.find("div",{'class':'entry-content'}))
-		ps = (main.findAll('p'))
-		# print(ps)
-		raw_text = (type(ps[0].get_text()))
-		speakers = re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+):</strong>',str(ps))
-		# print((speakers[0]))
-		start = []
-		speakers = []
-		for i, _ in enumerate(ps):
-			if re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+):</strong>',str(_)):
-				# print(re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+):</strong>',str(_)).group(0))
-				speakers.append(re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+):</strong>',str(_)).group(0))
-				start.append(i)
-		# print(start)
-		speakers_set = (set([str(x).replace(':','').replace('<p><strong>','').replace('</strong>','').lower() for x in speakers]))
-		guests = [x for x in speakers_set if x != 'tim ferriss']
-		try:
-			start = start[0]
-		except IndexError:
-			start = 0
-		text_sents = [x.get_text() for x in ps[start:]]
-		raw_text = ' '.join([x.get_text() for x in ps])
-		# print(raw_text)
-		print(len(text_sents))
-		# print(ps[0].get_text())
-		print(speakers_set)
-		print(guests)
-		dialog = {}
-		for i,p in enumerate(speakers_set):
-			dialog[p] = []
-		for i,sent in enumerate(text_sents):
-			# print(sent)
-			for p in speakers_set:
-				if re.match(p,sent.lower()):
-					dialog[p].append(i)
-		# print(dialog)
+	# urls = [ x for x in pd.read_csv('links.csv', sep='\n').loc[:,'urls']]
+	# # test = urls.loc[0,'urls']
+	# for i,url in enumerate(urls[69]):
+	result = {}
+	result['episode_num'] = ep_num
+	print(ep_num, link)
+	req = requests.get(link)
+	soup = BeautifulSoup(req.text, 'html.parser')
+	main = (soup.find("div",{'class':'entry-content'}))
+	ps = (main.findAll('p'))
+	print(len(ps))
+	raw_text = (type(ps[0].get_text()))
+	speakers = re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+)',str(ps))
+	# print((speakers[0]))
+	start = []
+	speakers = []
+	end = len(ps)
+	for i, _ in enumerate(ps):
+		txt = str(_).replace('</strong>','')
+		if re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+)',txt):
+			# print(re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+)',txt).group(0),i)
+			speakers.append(re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+)',txt).group(0))
+			start.append(i)
+		if re.match('<p id="fhcp">',txt):
 
-	
+			print(i, txt)
+			end = i
+	print('end',end)
+	speakers_set = (set([str(x).replace('<p><strong>','').replace('</strong>','').lower() for x in speakers]))
+	guests = [x for x in speakers_set if x != 'tim ferriss']
+	try:
+		start = start[0]
+	except IndexError:
+		start = 0
+	raw_text = ' '.join([x.get_text() for x in ps[start:end]])
+	text_sents = [x.lower() for x in re.split(r'[.?!] ',raw_text)][:-1]
+	# print(raw_text)
+	# print(len(text_sents))
+	# print(ps[0].get_text())
+	# print(speakers_set)
+	# print(guests)
+	print(text_sents)
+	dialog_starts = {}
+	words = []
+	for i,p in enumerate(speakers_set):
+		dialog_starts[p] = []
+	for i,sent in enumerate(text_sents):
+		# print(sent)
+		for p in speakers_set:
+			if re.match(p,sent.lower()):
+				dialog_starts[p].append(i)
+	cleaned_sents = text_sents
+	for p in speakers_set:
+		cleaned_sents = list(map(lambda x:x.replace(f"{p.lower()}: ",''),cleaned_sents))
+	# print((cleaned_sents))
+	# cleaned_sents = (cleaned_sents)
+	words = list(map(lambda x: x.split(' '),cleaned_sents))
+	words = [it for sub in words for it in sub]
+	print(words)
+	result['guests'] = guests
+	result['speakers'] = list(speakers_set)
+	result['raw_text'] = raw_text.strip()
+	result['num_words'] = len(words)
+	result['num_sentences'] = len(text_sents)
+	result['text_sentences'] = cleaned_sents
+	result['dialog_idx'] = dialog_starts
+
+
+	return result
 
 # # Used for making links.csv. Need to move to own file!
 def get_urls():
@@ -90,5 +115,12 @@ def get_urls():
 
 if __name__ == '__main__':
 	# Testing
-	# parse_html()
-	get_urls()
+	data = parse_html(0,'https://tim.blog/edward-norton-on-the-tim-ferriss-show-transcript/')
+	# data = parse_html(0,'https://tim.blog/2018/06/21/the-tim-ferriss-show-transcripts-soman-chainani/')
+	# data = parse_html(0,'https://tim.blog/2018/01/01/the-tim-ferriss-show-transcripts-on-zero-to-hero-transformations/')
+
+	
+	with open('files/Testhtml.json','w') as fp:
+		json.dump(data,fp,sort_keys=True)
+
+	# get_urls()
