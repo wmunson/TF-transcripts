@@ -13,12 +13,12 @@ def parse_html(ep_num, link):
 	# for i,url in enumerate(urls[69]):
 	result = {}
 	result['episode_num'] = ep_num
-	print(ep_num, link)
+	# print(ep_num, link)
 	req = requests.get(link)
 	soup = BeautifulSoup(req.text, 'html.parser')
 	main = (soup.find("div",{'class':'entry-content'}))
 	ps = (main.findAll('p'))
-	print(len(ps))
+	# print(len(ps))
 	raw_text = (type(ps[0].get_text()))
 	speakers = re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+)',str(ps))
 	# print((speakers[0]))
@@ -32,10 +32,9 @@ def parse_html(ep_num, link):
 			speakers.append(re.search(r'<p><strong>([A-Z]{1}[a-z]+\s[A-Z]{1}[a-z]+)',txt).group(0))
 			start.append(i)
 		if re.match('<p id="fhcp">',txt):
-
-			print(i, txt)
+			# print(i, txt)
 			end = i
-	print('end',end)
+	# print('end',end)
 	speakers_set = (set([str(x).replace('<p><strong>','').replace('</strong>','').lower() for x in speakers]))
 	guests = [x for x in speakers_set if x != 'tim ferriss']
 	try:
@@ -47,18 +46,24 @@ def parse_html(ep_num, link):
 	# print(raw_text)
 	# print(len(text_sents))
 	# print(ps[0].get_text())
-	# print(speakers_set)
+	print(speakers_set)
 	# print(guests)
-	print(text_sents)
+	# print(text_sents)
 	dialog_starts = {}
-	words = []
 	for i,p in enumerate(speakers_set):
 		dialog_starts[p] = []
+
+	# Assigning speaker sentences index 
+	speak = ''
 	for i,sent in enumerate(text_sents):
 		# print(sent)
 		for p in speakers_set:
 			if re.match(p,sent.lower()):
-				dialog_starts[p].append(i)
+				speak = p
+		try:
+			dialog_starts[speak].append(i)
+		except KeyError:
+			pass
 	cleaned_sents = text_sents
 	for p in speakers_set:
 		cleaned_sents = list(map(lambda x:x.replace(f"{p.lower()}: ",''),cleaned_sents))
@@ -66,7 +71,12 @@ def parse_html(ep_num, link):
 	# cleaned_sents = (cleaned_sents)
 	words = list(map(lambda x: x.split(' '),cleaned_sents))
 	words = [it for sub in words for it in sub]
-	print(words)
+	# print(words)
+	if len(dialog_starts) > 0:
+		show_type = 'html'
+	else:
+		show_type = 'audio'
+	result['file_type'] = show_type
 	result['guests'] = guests
 	result['speakers'] = list(speakers_set)
 	result['raw_text'] = raw_text.strip()

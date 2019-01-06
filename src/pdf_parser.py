@@ -10,7 +10,7 @@ def pdf_parser(ep_num,link):
 	pdf_bytes = io.BytesIO(req.content)
 	result ={}
 	pdf_raw = PyPDF2.PdfFileReader(pdf_bytes)
-	print(pdf_raw)
+	# print(pdf_raw)
 	num = pdf_raw.numPages
 	result['num_pages'] = num
 	raw_string = ''
@@ -30,70 +30,93 @@ def pdf_parser(ep_num,link):
 	pdf = pdf.replace('Õ',"'")
 	pdf = pdf.replace('Ð',"-")
 	pdf = pdf.lower()
-	print(pdf)
+	pdf = re.sub( r'^!','',pdf)
+	pdf = re.sub( r'( !)(\w)',r'\2',pdf)
+	pdf = re.sub( r'([\w,\.\?])(!)(\w)',r'\1 \3',pdf)
+	pdf = re.sub( r'([,\.\?])(!)',r'\1 ',pdf)
+	pdf = re.sub( r' ! ','i',pdf)
+	# print(pdf)
 
-
-	## Saving episode details
-	show_details = re.search(r'!the tim ferriss show transcripts episode ([0-9]+):  ([a-z]+ [a-z]+)',pdf,re.MULTILINE).groups()
-	guest = show_details[1]
-	result['guest'] = guest
-	first,last = guest.split()
+	## Saving guest speaker names
+	show_details = re.search(r'the tim ferriss show transcripts episode ([0-9]+):  (.+,*) show notes and links at tim.blog/podcast',pdf,re.MULTILINE).groups()
+	guests_text = show_details[1]
 	episode = show_details[0]
-	result['episode_num'] = ep_num
 
 
 	## Remove headers and speaker names
-	raw_text = pdf.replace(f'!the tim ferriss show transcripts episode {episode}:  {guest} show notes and links at tim.blog/podcast','')
-
+	raw_text = pdf.replace(f'the tim ferriss show transcripts episode {episode}:  {guests_text} show notes and links at tim.blog/podcast','')
+	raw_text = raw_text.strip()
+	
 	raw_text_list = raw_text.split()
-	text_len = len(raw_text_list)
-	result['raw_text'] = raw_text.strip()
-	result['text_len'] = text_len
+	text_sents = [x.lower().strip() for x in re.split(r'[.?!] ',raw_text)]
 
-
-	## Save individual speaker text and basic metrics
-	sent_start_idx = []
-	for i,r in enumerate(raw_text_list):
-		if r == 'ferriss:' or r == f"{last}:":
-			# print(i,raw_text_list[i:i+3])
-			sent_start_idx.append(i)
-	result['sent_start_idx'] = sent_start_idx
+	# Checking for episodes with no guests
+	if re.search(guests_text,pdf):
+		guest_set = set(guests_text.split(','))
+		guest_list = [x.strip() for x in guest_set]
+		speakers_list = ['tim ferriss']
+		speakers_list.extend(guest_list)
+	else:
+		guest_list = []
+		speakers_list = ['tim ferriss']
+		
+	print(re.search(guests_text,pdf))
+	#####
+#   working on eleiminating the title from speakers list when Tim solo episode. trying to use re search/find to establish min number of occurance of 'geusts_text' to elimiate title but keep guest names
+	#####
+	# print(speakers_list)
+	# first,last = guest.split()
 	
-	tim_text_list = []
-	guest_text_list = []
-	for i, idx in enumerate(sent_start_idx):
-		start = idx + 1
+
+	# with open('files/pdfcheck.txt','w') as fp:
+	# 	fp.write(raw_text)
+
+	dialog_starts = {}
+	for i,p in enumerate(speakers_list):
+		dialog_starts[p] = []
+
+	# Assigning speaker sentences index 
+	speak = ''
+	for i,sent in enumerate(text_sents):
+		# print(sent)
+		for p in speakers_list:
+			if re.match(p,sent.lower()):
+				speak = p
 		try:
-			end = sent_start_idx[i+1]
-		except IndexError:
-			end = len(raw_text_list)
-			print(start, end)
-		if raw_text_list[idx] == 'ferriss:':
-			tim_text_list.append(' '.join(raw_text_list[start:end-1]))		
-		if raw_text_list[idx] == f'{last}:':
-			guest_text_list.append(' '.join(raw_text_list[start:end-1]))
-	
-	tim_text_len = 0
-	for t in tim_text_list:
-		tim_text_len += len(t.split())
-	guest_text_len = 0
-	for t in guest_text_list:
-		guest_text_len += len(t.split())
+			dialog_starts[speak].append(i)
+		except KeyError:
+			pass
+	cleaned_sents = text_sents
+	for p in speakers_list:
+		cleaned_sents = list(map(lambda x:x.replace(f"{p.lower()}: ",''),cleaned_sents))
 
-	result['tim_text'] = tim_text_list
-	result['tim_text_len'] = tim_text_len
-	result['guest_text'] = guest_text_list
-	result['guest_text_len'] = guest_text_len
+	words = list(map(lambda x: x.split(' '),cleaned_sents))
+	words = [it for sub in words for it in sub]
+	
+	if len(dialog_starts) > 0:
+		show_type = 'pdf'
+	else:
+		show_type = 'audio'
+	result['file_type'] = show_type
+	result['episode_num'] = ep_num
+	result['guests'] = guest_list
+	result['speakers'] = speakers_list
+	result['raw_text'] = raw_text.strip()
+	result['num_words'] = len(words)
+	result['num_sentences'] = len(text_sents)
+	result['text_sentences'] = cleaned_sents
+	result['dialog_idx'] = dialog_starts
+
 
 	return result
 	# print((guest_text_list))
 	# print(result)
-	# with open('files/json.json','w') as fp:
-	# 	json.dump(result,fp,sort_keys=True)
+	# with open('files/pdfcheck.txt','w') as fp:
+	# 	fp.write(pdf)
 
 
 
 if __name__ == '__main__':
-	data = pdf_parser(0,'https://fhww.files.wordpress.com/2018/07/59-alex-blumberg-part-2.pdf')
+	data = pdf_parser(63,'https://fhww.files.wordpress.com/2018/07/09-tim-ferriss-the-9-habits-to-stop-now.pdf')
 	with open('files/Testpdf.json','w') as fp:
 		json.dump(data,fp,sort_keys=True)
