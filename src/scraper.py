@@ -98,14 +98,15 @@ def get_urls():
 	posts = main.findAll('p')
 	hrefs=[]
 	episodes = []
+	guests = []
 	for p in posts:
 		# print((p.text.strip()))
 		txt = p.text.strip()
-		if re.match(r'^(Episode|Ep.|#)', txt):
-			print('txt: ',txt)
+		if re.match(r'^(Episode|Ep\.|#)', txt):
+			# print('txt: ',txt)
 			try:
-				ep = re.match(r'^(Episode |Ep. |Ep |#)(\d+)',txt).groups()
-				# print((ep))
+				ep = re.match(r'^(Episode |Ep\. |Ep |#)(\d+)(.+)',txt).groups()
+				guests.append((ep[2]))
 				episodes.append(ep[1])
 			except:
 				print(txt)
@@ -116,21 +117,22 @@ def get_urls():
 			except:
 				pass
 
-	df = pd.DataFrame({'urls':hrefs,'ep':episodes})
-	df.to_csv('links3.csv',index=False,sep='|')
+	df = pd.DataFrame({'urls':hrefs,'ep':episodes,'guests':guests})
+	df.to_csv('links4.csv',index=False,sep='|')
 	# print(hrefs)
-	# print(episodes)
-	print(df)
+	print(episodes)
+	# print(df)
 
 
 if __name__ == '__main__':
 	# Testing
-	data = parse_html(0,'https://tim.blog/edward-norton-on-the-tim-ferriss-show-transcript/')
-	# data = parse_html(0,'https://tim.blog/2018/06/21/the-tim-ferriss-show-transcripts-soman-chainani/')
-	# data = parse_html(0,'https://tim.blog/2018/01/01/the-tim-ferriss-show-transcripts-on-zero-to-hero-transformations/')
+	# data = parse_html(0,'https://tim.blog/edward-norton-on-the-tim-ferriss-show-transcript/')
+	# # data = parse_html(0,'https://tim.blog/2018/06/21/the-tim-ferriss-show-transcripts-soman-chainani/')
+	# # data = parse_html(0,'https://tim.blog/2018/01/01/the-tim-ferriss-show-transcripts-on-zero-to-hero-transformations/')
 
 	
-	with open('files/Testhtml.json','w') as fp:
-		json.dump(data,fp,sort_keys=True)
+	# with open('files/Testhtml.json','w') as fp:
+	# 	json.dump(data,fp,sort_keys=True)
 
-	# get_urls()
+
+	get_urls()
