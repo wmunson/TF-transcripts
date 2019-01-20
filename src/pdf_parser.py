@@ -4,7 +4,7 @@ import json
 import io
 import requests
 
-def pdf_parser(ep_num,link):
+def pdf_parser(ep_num,link, guest):
 	# file = 'pdfs/01-kevin-rose.pdf'
 	req = requests.get(link)
 	pdf_bytes = io.BytesIO(req.content)
@@ -35,27 +35,31 @@ def pdf_parser(ep_num,link):
 	pdf = re.sub( r'([\w,\.\?])(!)(\w)',r'\1 \3',pdf)
 	pdf = re.sub( r'([,\.\?])(!)',r'\1 ',pdf)
 	pdf = re.sub( r' ! ','i',pdf)
-	print(pdf)
+	# print(pdf)
 
 	## Saving title and ep num
-	show_details = re.search(r'The Tim Ferriss Show Transcripts Episode ([0-9]+):  (.+,*) Show notes and links at tim.blog/podcast',pdf,re.MULTILINE).groups()
-	title_text = show_details[1]
-	episode = show_details[0]
-
-	poss_speakers = re.findall(r'[A-Z][a-z]+ [A-Z][a-z]+: |[A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+: ',pdf)
-	poss_speak_set = set(poss_speakers)
-	print(poss_speakers)
-	speakers_list = []
-	for poss_speak in poss_speak_set:
-		ct = 0
-		for s in poss_speakers:
-			# print(s, poss_speak)
-			if poss_speak == s:
-				# print('y')
-				ct =+ 1
-		if ct >= 1:
-			speakers_list.append(poss_speak.strip().replace(':','').lower())
-	guest_list = [ x for x in speakers_list if x != 'Tim Ferriss']
+	show_details = re.search(r'The Tim Ferriss Show Transcripts (Episode|Episodes) ([0-9,\s]*):[\s]{1,2}(.+[,&]*) Show notes and links at tim.blog/podcast',pdf,re.MULTILINE).groups()
+	title_text = show_details[2].lower()
+	episode = show_details[1]
+	# print(show_details)
+	# poss_speakers = re.findall(r'[A-Z][a-z]+ [A-Z][a-z]+: |[A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+: ',pdf)
+	# poss_speak_set = set(poss_speakers)
+	# # print(poss_speakers)
+	# speakers_list = []
+	# for poss_speak in poss_speak_set:
+	# 	ct = 0
+	# 	for s in poss_speakers:
+	# 		# print(s, poss_speak)
+	# 		if poss_speak == s:
+	# 			# print('y')
+	# 			ct =+ 1
+	# 	if ct >= 1:
+	# 		speakers_list.append(poss_speak.strip().replace(':','').lower())
+	guest_list = [x.lower() for x in guest if x != 'None']
+	speakers_list = guest_list.copy()
+	speakers_list.append('tim ferriss')
+	# guest_list = [ x for x in speakers_list if x != 'Tim Ferriss']
+	
 	## Remove headers and speaker names
 	pdf = pdf.lower()
 	raw_text = pdf.replace(f'the tim ferriss show transcripts episode {episode}:  {title_text} show notes and links at tim.blog/podcast','')
@@ -82,7 +86,7 @@ def pdf_parser(ep_num,link):
 	#####
 #   working on eleiminating the title from speakers list when Tim solo episode. trying to use re search/find to establish min number of occurance of 'geusts_text' to elimiate title but keep guest names
 	#####
-	print(speakers_list)
+	# print(speakers_list)
 	# first,last = guest.split()
 	
 
@@ -127,6 +131,7 @@ def pdf_parser(ep_num,link):
 
 
 	return result
+
 	# print((guest_text_list))
 	# print(result)
 	# with open('files/pdfcheck.txt','w') as fp:
@@ -135,6 +140,6 @@ def pdf_parser(ep_num,link):
 
 
 if __name__ == '__main__':
-	data = pdf_parser(63,'https://fhww.files.wordpress.com/2018/08/118-alain-de-botton.pdf')
+	data = pdf_parser(63,'https://fhww.files.wordpress.com/2018/07/15-neil-strauss.pdf', ['Neil Strauss'])
 	with open('files/Testpdf.json','w') as fp:
 		json.dump(data,fp,sort_keys=True)

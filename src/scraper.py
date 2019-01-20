@@ -102,14 +102,14 @@ def get_urls():
 	for p in posts:
 		# print((p.text.strip()))
 		txt = p.text.strip()
-		if re.match(r'^(Episode|Ep\.|#)', txt):
+		if re.match(r'^(Episode|Ep.|#)', txt):
 			# print('txt: ',txt)
 			try:
-				ep = re.match(r'^(Episode |Ep\. |Ep |#)(\d+)(.+)',txt).groups()
+				ep = re.match(r'^(Episode |Ep. |Ep |#)(\d+)(.+)',txt).groups()
 				guests.append((ep[2]))
 				episodes.append(ep[1])
 			except:
-				print(txt)
+				print('error: ',txt)
 			try:
 				href = p.a['href']
 				# print((href))
@@ -118,7 +118,7 @@ def get_urls():
 				pass
 
 	df = pd.DataFrame({'urls':hrefs,'ep':episodes,'guests':guests})
-	df.to_csv('links4.csv',index=False,sep='|')
+	df.to_csv('links5.csv',index=False,sep='|')
 	# print(hrefs)
 	print(episodes)
 	# print(df)
